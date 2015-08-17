@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Buildings>
+
+	<ThingDef Name="BuildingBase" Abstract="True">
+		<category>Building</category>
+		<thingClass>Building</thingClass>
+		<soundImpactDefault>BulletImpactMetal</soundImpactDefault>
+		<selectable>true</selectable>
+		<drawerType>MapMeshAndRealTime</drawerType>
+		<terrainAffordanceNeeded>Light</terrainAffordanceNeeded>
+		<repairEffect>Repair</repairEffect>
+		<leaveResourcesWhenKilled>true</leaveResourcesWhenKilled>
+		<holdsRoof>false</holdsRoof>
+		<filthLeaving>BuildingRubble</filthLeaving>
+	</ThingDef>
+
+<!--================ Storage ================-->
+
+	<ThingDef ParentName="BuildingBase">
+		<defName>Container_Storage</defName>
+		<label>Storage Box</label>
+		<thingClass>ContainersForStuff.Container</thingClass>
+		<graphicData>
+			<texPath>Storage</texPath>
+			<graphicClass>Graphic_Single</graphicClass>
+		</graphicData>
+		<Passability>Impassable</Passability>	
+		<castEdgeShadows>true</castEdgeShadows>
+		<statBases>
+			<MaxHitPoints>200</MaxHitPoints>
+			<WorkToMake>2000</WorkToMake>
+			<Flammability>1.0</Flammability>
+			<Beauty>10</Beauty>
+		</statBases>
+		<Description>A place to store in.</Description>
+		<Size>(1,1)</Size>	
+		<stuffCategories>
+			<li>Metallic</li>
+			<li>Woody</li>
+		</stuffCategories>
+		<costStuffCount>75</costStuffCount>
+		<building>
+			<preventDeterioration>true</preventDeterioration>
+		</building>
+		<inspectorTabs>
+			<li>ITab_Storage</li>
+			<li>ContainersForStuff.ITab_Container_Gear</li>
+		</inspectorTabs>
+		<DesignationCategory>Furniture</DesignationCategory>
+		<surfaceType>Item</surfaceType>
+		<hasTooltip>true</hasTooltip>
+		<AltitudeLayer>ItemImportant</AltitudeLayer>
+	</ThingDef>
+	
+</Buildings>

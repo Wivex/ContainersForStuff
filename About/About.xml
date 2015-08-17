@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+	<name>ContainersForStuff v1.1</name>
+	<author>Wivex</author>
+	<targetVersion>Alpha 11</targetVersion>
+	<description>
+	Keep your stuff together.
+
+	This mod adds automated containers to the game, which behave as multislotted stockpiles and require no micromanagement to operate.
+	</description>
+</ModMetaData>

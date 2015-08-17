@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<JobDefs>
+
+	<JobDef>
+		<defName>HaulToCell</defName>
+		<driverClass>ContainersForStuff.JobDriver_HaulToCell</driverClass>
+		<reportString>Hauling TargetA.</reportString>
+	</JobDef>
+  
+</JobDefs>
