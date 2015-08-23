@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ModMetaData>
-	<name>ContainersForStuff v1.1</name>
+	<name>Containers For Stuff</name>
 	<author>Wivex</author>
-	<targetVersion>Alpha 11</targetVersion>
+	<targetVersion>Alpha 12</targetVersion>
 	<description>
 	Keep your stuff together.
 
-	This mod adds automated containers to the game, which behave as multislotted stockpiles and require no micromanagement to operate.
+	This mod adds automated containers to the game, which behave as multislotted stockpiles and require no micromanagement to operate. You can choose universal storage box or fridge, which also keeps your food fresh.
 	</description>
 </ModMetaData>

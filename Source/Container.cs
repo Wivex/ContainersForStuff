@@ -21,6 +21,18 @@ namespace ContainersForStuff
         // doesn't count container as thing
         public int itemsCount { get { return Find.ThingGrid.ThingsListAt(this.Position).Count - 1; } }
 
+
+        public override void TickRare()
+        {
+            foreach (Thing thing in itemsList)
+            {
+                if ( thing.TryGetComp<CompRottable>().GetType() == typeof(CompRottable))
+                {
+                    thing.TryGetComp<CompRottable>().rotProgress = 0f;
+                }
+            }
+        }
+
         public override void Destroy(DestroyMode mode = DestroyMode.Vanish)
         {
             ScatterItemsAround();

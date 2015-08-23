@@ -14,8 +14,8 @@ namespace ContainersForStuff
 {
     public class JobDriver_HaulToCell : JobDriver
     {
-        private const TargetIndex HaulableInd = TargetIndex.A;
-        private const TargetIndex StoreCellInd = TargetIndex.B;
+        public const TargetIndex HaulableInd = TargetIndex.A;
+        public const TargetIndex StoreCellInd = TargetIndex.B;
 
         // duplicated cause vanilla is private
         public static readonly int PlaceNearMiddleRadialCells = GenRadial.NumCellsInRadius(3f);
@@ -37,7 +37,7 @@ namespace ContainersForStuff
             this.FailOnDestroyed(HaulableInd);
             this.FailOnBurningImmobile(StoreCellInd);
             //Note we only fail on forbidden if the target doesn't start that way
-            //actor.carryHands helps haul-aside jobs on forbidden items
+            //actor.carrier helps haul-aside jobs on forbidden items
             if (!TargetThingA.IsForbidden(pawn))
                 this.FailOnForbidden(HaulableInd);
 
@@ -94,22 +94,23 @@ namespace ContainersForStuff
             {
                 Pawn actor = toil.actor;
                 Job curJob = actor.jobs.curJob;
-                if (actor.carryHands.CarriedThing.def.stackLimit == 1)
+
+                if (actor.carrier.CarriedThing.def.stackLimit == 1)
                 {
                     return;
                 }
-                int availableStackSpace = actor.carryHands.container.AvailableStackSpace;
-                if (availableStackSpace <= 0)
+                if (actor.carrier.Full)
                 {
                     return;
                 }
-                int num = curJob.maxNumToCarry - actor.carryHands.CarriedThing.stackCount;
+                int num = curJob.maxNumToCarry - actor.carrier.CarriedThing.stackCount;
                 if (num <= 0)
                 {
                     return;
                 }
                 // call duplicated to make changes (IsValidStorageFor)
-                Predicate<Thing> validator = (Thing t) => t.SpawnedInWorld && t.def == actor.carryHands.CarriedThing.def && !t.IsForbidden(actor) && !t.IsInValidStorage() && (storeCellInd == TargetIndex.None || IsValidStorageFor(curJob.GetTarget(storeCellInd).Cell , t)) && actor.CanReserve(t, 1);
+                // NOTE !t.IsInValidStorage() might require optimization
+                Predicate<Thing> validator = (Thing t) => t.SpawnedInWorld && t.def == actor.carrier.CarriedThing.def && !t.IsForbidden(actor) && !t.IsInValidStorage() && (storeCellInd == TargetIndex.None || IsValidStorageFor(curJob.GetTarget(storeCellInd).Cell , t)) && actor.CanReserve(t, 1);
 
                 Thing thing = GenClosest.ClosestThingReachable(actor.Position, ThingRequest.ForGroup(ThingRequestGroup.HaulableAlways), PathEndMode.ClosestTouch, TraverseParms.For(actor, Danger.Deadly, TraverseMode.ByPawn, false), 8f, validator, null, -1, false);
 
@@ -133,9 +134,9 @@ namespace ContainersForStuff
                 Job curJob = actor.jobs.curJob;
                 IntVec3 cell = curJob.GetTarget(cellInd).Cell;
                 SlotGroup slotGroup = Find.SlotGroupManager.SlotGroupAt(cell);
-                if (slotGroup != null && slotGroup.Settings.AllowedToAccept(actor.carryHands.CarriedThing))
+                if (slotGroup != null && slotGroup.Settings.AllowedToAccept(actor.carrier.CarriedThing))
                 {
-                    Find.DesignationManager.RemoveAllDesignationsOn(actor.carryHands.CarriedThing, false);
+                    Find.DesignationManager.RemoveAllDesignationsOn(actor.carrier.CarriedThing, false);
                 }
                 Thing thing;
                 // call duplicated to make changes
@@ -157,13 +158,13 @@ namespace ContainersForStuff
                 {
                     IntVec3 vec;
                     // call duplicated to make changes
-                    if (nextToilOnPlaceFailOrIncomplete != null && WorkGiver_HaulGeneral.TryFindBestBetterStoreCellFor(actor.carryHands.CarriedThing, actor, StoragePriority.Unstored, actor.Faction, out vec, true))
+                    if (nextToilOnPlaceFailOrIncomplete != null && WorkGiver_HaulGeneral.TryFindBestBetterStoreCellFor(actor.carrier.CarriedThing, actor, StoragePriority.Unstored, actor.Faction, out vec, true))
                     {
                         actor.CurJob.SetTarget(cellInd, vec);
                         actor.jobs.curDriver.SetNextToil(nextToilOnPlaceFailOrIncomplete);
                         return;
                     }
-                    Job job = HaulAIUtility.HaulAsideJobFor(actor, actor.carryHands.CarriedThing);
+                    Job job = HaulAIUtility.HaulAsideJobFor(actor, actor.carrier.CarriedThing);
                     if (job != null)
                     {
                         curJob.targetA = job.targetA;
@@ -181,12 +182,12 @@ namespace ContainersForStuff
 					"Incomplete haul for ",
 					actor,
 					": Could not find anywhere to put ",
-					actor.carryHands.CarriedThing,
+					actor.carrier.CarriedThing,
 					" near ",
 					actor.Position,
-					". Destroying. actor.carryHands should never happen!"
+					". Destroying. actor.carrier should never happen!"
 				}));
-                        actor.carryHands.CarriedThing.Destroy(DestroyMode.Vanish);
+                        actor.carrier.CarriedThing.Destroy(DestroyMode.Vanish);
                     }
                 }
                 else if (nextToilOnPlaceFailOrIncomplete != null)
@@ -214,7 +215,7 @@ namespace ContainersForStuff
                 IntVec3 cell = actor.jobs.curJob.GetTarget(squareIndex).Cell;
 
                 // call duplicated to make changes
-                return actor.jobs.curJob.haulMode == HaulMode.ToCellStorage && !IsValidStorageFor(cell, actor.carryHands.CarriedThing);
+                return actor.jobs.curJob.haulMode == HaulMode.ToCellStorage && !IsValidStorageFor(cell, actor.carrier.CarriedThing);
             });
             return toil;
         }
@@ -235,9 +236,9 @@ namespace ContainersForStuff
         public bool TryDropCarriedThing(Pawn actor, IntVec3 dropLoc, ThingPlaceMode mode, out Thing resultingThing)
         {
             // call duplicated to make changes
-            if (TryDrop(actor, actor.carryHands.CarriedThing, dropLoc, mode, out resultingThing))
+            if (TryDrop(actor, actor.carrier.CarriedThing, dropLoc, mode, out resultingThing))
             {
-                if (actor.carryHands.pawn.Faction.HostileTo(Faction.OfColony))
+                if (actor.Faction.HostileTo(Faction.OfColony))
                 {
                     resultingThing.SetForbidden(true, false);
                 }
@@ -249,11 +250,11 @@ namespace ContainersForStuff
         // duplicated to make changes
         public bool TryDrop(Pawn actor, Thing thing, IntVec3 dropLoc, ThingPlaceMode mode, out Thing lastResultingThing)
         {
-            if (!actor.carryHands.container.Contents.Contains(thing))
+            if (!actor.carrier.container.Contains(thing))
             {
                 Log.Error(string.Concat(new object[]
 		        {
-			        actor.carryHands.container.owner,
+			        actor.carrier.container.owner,
 			        " container tried to drop  ",
 			        thing,
 			        " which it didn't contain."
@@ -264,7 +265,7 @@ namespace ContainersForStuff
             // call duplicated to make changes
             if (TryDropSpawn(thing, dropLoc, mode, out lastResultingThing))
             {
-                actor.carryHands.container.Contents.Remove(thing);
+                actor.carrier.container.Remove(thing);
                 return true;
             }
             return false;
@@ -350,16 +351,16 @@ namespace ContainersForStuff
             }
             throw new InvalidOperationException();
         }
-
+        
         // duplicated to make changes (added container support)
         public bool TryPlaceDirect(Thing thing, IntVec3 loc, out Thing resultingThing)
         {
             // boolean success indicator
             bool flag = false;
-            
+
             // container code part
             List<Thing> list = Find.ThingGrid.ThingsListAt(loc);
-            if (list.Exists(storage => storage.def.thingClass.Name == "Container"))
+            if (list.Exists(storage => storage.TryGetComp<CompContainer>() != null))
             {
                 resultingThing = null;
 
@@ -367,6 +368,7 @@ namespace ContainersForStuff
                 if (thing.def.stackLimit > 1)
                 {
                     foreach (Thing item in list)
+
                     {
                         if (!item.CanStackWith(thing))
                         {
@@ -375,8 +377,12 @@ namespace ContainersForStuff
                         // if item can stack with another
                         else
                         {
+                            // Required, because thing reference is changed to the absorber, if absorbed
+                            Thing t = thing;
                             if (item.TryAbsorbStack(thing, true))
                             {
+                                // Clean up to prevent haulables lists overflow
+                                RemoveHaulableFromLists(t);
                                 // it gets absorbed and destroyed
                                 resultingThing = item;
                                 return !flag;
@@ -384,20 +390,12 @@ namespace ContainersForStuff
                         }
                     }
                 }
-                // single items and stackables
 
-                // spawning this item in container cell stack
-                Thing newthing = ThingMaker.MakeThing(thing.def, thing.Stuff);
-                newthing.stackCount = thing.stackCount;
-                resultingThing = GenSpawn.Spawn(newthing, loc);
+                resultingThing = GenSpawn.Spawn(thing, loc);
 
-                // updating slotgroup info
-                SlotGroup slotGroup = loc.GetSlotGroup();
-                if (slotGroup != null && slotGroup.parent != null)
-                {
-                    slotGroup.parent.Notify_ReceivedThing(resultingThing);
-                }
-                // return success
+                // Clean up to prevent haulables lists overflow
+                RemoveHaulableFromLists(thing);
+
                 return !flag;
             }
 
@@ -420,8 +418,12 @@ namespace ContainersForStuff
                     }
                     else
                     {
+                        // Required, because thing reference is changed to the absorber, if absorbed
+                        Thing t = thing;
                         if (thing2.TryAbsorbStack(thing, true))
                         {
+                            // Clean up to prevent haulables lists overflow
+                            RemoveHaulableFromLists(t);
                             resultingThing = thing2;
                             return !flag;
                         }
@@ -430,7 +432,11 @@ namespace ContainersForStuff
                     }
                 }
             }
+
             resultingThing = GenSpawn.Spawn(thing, loc);
+            // Clean up to prevent haulables lists overflow
+            RemoveHaulableFromLists(thing);
+
             SlotGroup slotGroup1 = loc.GetSlotGroup();
             if (slotGroup1 != null && slotGroup1.parent != null)
             {
@@ -532,8 +538,12 @@ namespace ContainersForStuff
                     if (thing2.def == thing.def && thing2.stackCount < thing.def.stackLimit)
                     {
                         // can absorb
+                        // Required, because thing reference is changed to the absorber, if absorbed
+                        Thing t = thing2;
                         if (thing.TryAbsorbStack(thing2, true))
                         {
+                            // Clean up to prevent haulables lists overflow
+                            RemoveHaulableFromLists(t);
                             return PlaceSpotQuality.Perfect;
                         }
                         // cannot absorb all/anything
@@ -584,29 +594,15 @@ namespace ContainersForStuff
             return PlaceSpotQuality.Okay;
         }
 
-        // not used
-        public override string GetReport()
+        //To prevent unintended hauling requests and haulable's lists cluttering and overflow
+        public static void RemoveHaulableFromLists(Thing thing)
         {
-            IntVec3 destLoc = pawn.jobs.curJob.targetB.Cell;
-
-            Thing hauledThing = null;
-            if (pawn.carryHands.CarriedThing != null)
-                hauledThing = pawn.carryHands.CarriedThing;
-            else
-                hauledThing = TargetThingA;
-
-            string destName = null;
-            SlotGroup destGroup = StoreUtility.GetSlotGroup(destLoc);
-            if (destGroup != null)
-                destName = destGroup.parent.SlotYielderLabel();
-
-            string repString;
-            if (destName != null)
-                repString = "ReportHaulingTo".Translate(hauledThing.LabelCap, destName);
-            else
-                repString = "ReportHauling".Translate(hauledThing.LabelCap);
-
-            return repString;
+            if (WorkGiver_HaulGeneral.haulables_blockedInListerHaulables.Contains(thing))
+                WorkGiver_HaulGeneral.haulables_blockedInListerHaulables.Remove(thing);
+            if (WorkGiver_HaulGeneral.haulables_insideContainers.Contains(thing))
+                WorkGiver_HaulGeneral.haulables_insideContainers.Remove(thing);
+            if (CFS_ListerHaulables.haulables.Contains(thing))
+                CFS_ListerHaulables.haulables.Remove(thing);
         }
     }
 }

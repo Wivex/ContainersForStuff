@@ -12,14 +12,29 @@ namespace ContainersForStuff
 {
     public class WorkGiver_HaulGeneral : WorkGiver_Haul
     {
+        public static List<Thing> haulables_blockedInListerHaulables = new List<Thing>();
+        public static List<Thing> haulables_insideContainers = new List<Thing>();
+        
         public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
         {
-            return ListerHaulables.ThingsPotentiallyNeedingHauling();
+            /* Required, because ListerHaulables removes things from haulables list, which are not fit in SlotGroups (can't stack things).
+             * So i preserve the original list before it's changed after the first item is hauled to the destination point.
+             */
+            if (ListerHaulables.ThingsPotentiallyNeedingHauling().Count >= haulables_blockedInListerHaulables.Count)
+            {
+                haulables_blockedInListerHaulables = new List<Thing>(ListerHaulables.ThingsPotentiallyNeedingHauling());
+            }
+            // Merge all the required lists of haulables (original, blocked, inside containers and which are not counted at all, if containers already partially full (CFS_ListerHaulables.haulables), to fill the incomplete stacks)
+            return ListerHaulables.ThingsPotentiallyNeedingHauling().Union(haulables_blockedInListerHaulables).Union(haulables_insideContainers).Union(CFS_ListerHaulables.haulables).ToList();
         }
 
         public override bool ShouldSkip(Pawn pawn)
         {
-            return ListerHaulables.ThingsPotentiallyNeedingHauling().Count == 0;
+            // Ticker for checking special hauling cases of filling stacks in containers from stockpiles
+            CFS_ListerHaulables.ListerHaulablesTick();
+            FindHaulablesInsideContainers();
+            // Skip if no haulables in any list (ListerHaulables.ThingsPotentiallyNeedingHauling() will still count things inside container as hauling required, but they won't be hauled because of future checks)
+            return (ListerHaulables.ThingsPotentiallyNeedingHauling().Count == 0 && haulables_blockedInListerHaulables.Count == 0 && haulables_insideContainers.Count == 0 && CFS_ListerHaulables.haulables.Count == 0);
         }
 
         public override Job JobOnThing(Pawn pawn, Thing t)
@@ -52,6 +67,7 @@ namespace ContainersForStuff
                 return null;
             }
             // call duplicated to make changes
+
             return HaulMaxNumToCellJob(p, t, storeCell, false);
         }
 
@@ -66,11 +82,11 @@ namespace ContainersForStuff
                 // container code part
                 // list of things on potential cell with container
                 List<Thing> list = Find.ThingGrid.ThingsListAt(storeCell);
-                if (list.Exists(storage => storage.def.thingClass.Name == "Container"))
+                if (list.Exists(storage => storage.def.thingClass == typeof(Building_Storage) && storage.TryGetComp<CompContainer>() != null))
                 {
-                    Container container = list.Find(storage => storage.def.thingClass.Name == "Container") as Container;
+                    CompContainer container = list.Find(thing => thing.def.thingClass == typeof(Building_Storage) && thing.TryGetComp<CompContainer>() != null).TryGetComp<CompContainer>();
                     // if container has free slot
-                    if (container.itemsCount < container.itemsCap)
+                    if (container.itemsCount < container.compProps.itemsCap)
                     {
                         // haul maximum possible, excess will be stored in new slot
                         job.maxNumToCarry = haulable.def.stackLimit;
@@ -212,11 +228,11 @@ namespace ContainersForStuff
                 Thing currentThing = list[i];
 
                 // container code part
-                if (currentThing.def.thingClass.Name == "Container")
+                if (currentThing.def.thingClass == typeof(Building_Storage) && currentThing.TryGetComp<CompContainer>() != null)
                 {
-                    Container container = currentThing as Container;
+                    CompContainer container = list.Find(thing => thing.def.thingClass == typeof(Building_Storage) && thing.TryGetComp<CompContainer>() != null).TryGetComp<CompContainer>();
                     // if has free slots, no blocking
-                    if (container.itemsCount < container.itemsCap)
+                    if (container.itemsCount < container.compProps.itemsCap)
                     {
                         return true;
                     }
@@ -265,6 +281,45 @@ namespace ContainersForStuff
                 }
             }
             return true;
+        }
+
+        // duplicated to make changes
+        public static bool ShouldBeHaulable(Thing t)
+        {
+            return (t.def.alwaysHaulable || (t.def.EverHaulable && (Find.DesignationManager.DesignationOn(t, DesignationDefOf.Haul) != null || t.IsInAnyStorage()))) && !t.IsForbidden(Faction.OfColony) && !IsInValidBestStorage(t);
+        }
+
+        // duplicated to make changes
+        public static bool IsInValidBestStorage(Thing t)
+        {
+            SlotGroup slotGroup = t.Position.GetSlotGroup();
+            IntVec3 intVec;
+            return slotGroup != null && slotGroup.Settings.AllowedToAccept(t) && !TryFindBestBetterStoreCellFor(t, null, slotGroup.Settings.Priority, Faction.OfColony, out intVec, false);
+        }
+
+        //Find things that require hauling in container's stacks
+        public void FindHaulablesInsideContainers()
+        {
+            haulables_insideContainers = new List<Thing>();
+            List<Building_Storage> containersList = new List<Building_Storage>();
+
+            //Storage Buildings (like hoppers), which have CompContainer
+            containersList = Find.ListerBuildings.AllBuildingsColonistOfClass<Building_Storage>().Where(building => building.TryGetComp<CompContainer>() != null).ToList();
+
+            //Checking things that require hauling in each container and adding them to haulables list
+            if (containersList.Count > 0)
+            {
+                foreach (Building_Storage container in containersList)
+                {
+                    foreach (Thing item in container.TryGetComp<CompContainer>().itemsList)
+                    {
+                        if (ShouldBeHaulable(item))
+                        {
+                            haulables_insideContainers.Add(item);
+                        }
+                    }
+                }
+            }
         }
     }
 }

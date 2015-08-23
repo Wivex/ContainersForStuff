@@ -14,11 +14,10 @@ namespace ContainersForStuff
     public class ITab_Container_Gear : ITab_Pawn_Gear
     {
         public string labelTitle;
-        public Container container;
-
+        public CompContainer container;
+        
         public ITab_Container_Gear()
         {
-            this.size = new Vector2(300f, 355f);
             this.labelKey = "Items";
         }
         public override bool IsVisible
@@ -27,17 +26,22 @@ namespace ContainersForStuff
         }
         public string GetTitle()
         {
-            labelTitle = "Stored items count: " + container.itemsCount + "/" + container.itemsCap;
+            labelTitle = "Stored items count: " + container.itemsCount + "/" + container.compProps.itemsCap;
             return labelTitle;
         }
 
         protected override void FillTab()
         {
-            float fieldHeight = 30.0f;
-
-            this.container = this.SelThing as Container;
-
+            Building_Storage storage = this.SelThing as Building_Storage;
+            this.container = storage.TryGetComp<CompContainer>();
+            if (container == null)
+            {
+                Log.Error("No CompContainer included for this Building_Storage");
+                return;
+            }
             List<Thing> list = container.itemsList;
+            float fieldHeight = 30.0f;
+            this.size = new Vector2(300f, 55f + container.compProps.itemsCap * fieldHeight);
 
             ConceptDatabase.KnowledgeDemonstrated(ConceptDefOf.PrisonerTab, KnowledgeAmount.GuiFrame);
             Text.Font = GameFont.Small;
@@ -65,12 +69,13 @@ namespace ContainersForStuff
                         List<FloatMenuOption> options = new List<FloatMenuOption>();
                         options.Add(new FloatMenuOption("Info", () =>
                         {
-                            Find.LayerStack.Add((Layer)new Dialog_InfoCard(thing));
+                            // NOTE ?
+                            Find.WindowStack.Add(new Dialog_InfoCard(thing));
                         }));
                         options.Add(new FloatMenuOption("Drop", () =>
                         {
                             IntVec3 bestSpot = IntVec3.Invalid;
-                            if (JobDriver_HaulToCell.TryFindPlaceSpotNear(container.Position, thing, out bestSpot))
+                            if (JobDriver_HaulToCell.TryFindPlaceSpotNear(storage.Position, thing, out bestSpot))
                             {
                                 thing.Position = bestSpot;
                             }
@@ -80,7 +85,7 @@ namespace ContainersForStuff
                             }
                         }));
 
-                        Find.LayerStack.Add((Layer)new Layer_FloatMenu(options, "", false, false));
+                        Find.WindowStack.Add(new FloatMenu(options, "", false, false));
                     }
 
                     thingIconRect.y += fieldHeight;
