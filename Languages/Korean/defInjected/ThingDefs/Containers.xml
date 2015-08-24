@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<LanguageData>
+
+	<Container_Storage.label>보관 상자</Container_Storage.label>
+	<Container_Storage.description>보관을 할 수 있습니다.</Container_Storage.description>
+
+	<Container_Fridge.label>냉장 상자</Container_Fridge.label>
+	<Container_Fridge.description>보관한 음식이 상하지 않습니다.</Container_Fridge.description>
+
+</LanguageData>

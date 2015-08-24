@@ -18,7 +18,7 @@ namespace ContainersForStuff
         
         public ITab_Container_Gear()
         {
-            this.labelKey = "Items";
+            labelKey = "Items";
         }
         public override bool IsVisible
         {
@@ -26,7 +26,8 @@ namespace ContainersForStuff
         }
         public string GetTitle()
         {
-            labelTitle = "Stored items count: " + container.itemsCount + "/" + container.compProps.itemsCap;
+			//Stored items count: {0} / {1}
+	        labelTitle = "Container_StoredItemsCount".Translate(container.itemsCount, container.compProps.itemsCap);
             return labelTitle;
         }
 
@@ -67,12 +68,12 @@ namespace ContainersForStuff
                     if (Widgets.InvisibleButton(thingButtonRect))
                     {
                         List<FloatMenuOption> options = new List<FloatMenuOption>();
-                        options.Add(new FloatMenuOption("Info", () =>
+                        options.Add(new FloatMenuOption("Container_Info".Translate(), () =>
                         {
                             // NOTE ?
                             Find.WindowStack.Add(new Dialog_InfoCard(thing));
                         }));
-                        options.Add(new FloatMenuOption("Drop", () =>
+                        options.Add(new FloatMenuOption("Container_Drop".Translate(), () =>
                         {
                             IntVec3 bestSpot = IntVec3.Invalid;
                             if (JobDriver_HaulToCell.TryFindPlaceSpotNear(storage.Position, thing, out bestSpot))
