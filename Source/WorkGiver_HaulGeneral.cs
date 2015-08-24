@@ -43,14 +43,6 @@ namespace ContainersForStuff
             {
                 return null;
             }
-            if (t.def.thingClass == typeof(Corpse))
-            {
-                return null;
-            }
-            if (t.def.thingClass == typeof(Corpse))
-            {
-                return null;
-            }
             // call duplicated to make changes
             return HaulToStorageJob(pawn, t);
         }
